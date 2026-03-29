@@ -16,6 +16,12 @@ def init_db():
     """)
 
     conn.commit()
+
+    cursor.execute("""
+    CREATE INDEX IF NOT EXISTS idx_status ON printer_data(status);
+    """)
+    
+    conn.commit()
     conn.close()
 
 def insert_data(timestamp, nozzle, bed, status, progress):
