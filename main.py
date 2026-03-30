@@ -3,13 +3,14 @@ from fastapi import Query
 from dbcreate import init_db 
 from dbcreate import insert_data
 from PrinterAPIrequest import get_printer_data
+from PrinterAPIrequest import send_printer_command
 import threading
 import time
 import sqlite3
 from fastapi.middleware.cors import CORSMiddleware
 
 
-
+last_job_state = None
 latest_data = {}
 app = FastAPI()
 init_db()
@@ -27,8 +28,17 @@ def monitor_printer():
         printer_data = get_printer_data()
 
         global latest_data
+        global last_job_state
         latest_data = printer_data
-        
+        event = None
+        currentJob = printer_data.get("job")
+
+        if last_job_state is not None and currentJob != last_job_state:
+            if last_job_state in ['idle', None] and currentJob in ['preheating', 'printing']:
+                event = "Print job started!"
+            elif last_job_state == 'printing' and currentJob == 'idle':
+                event = "Print job completed!"
+        last_job_state = currentJob
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
 
         insert_data(
@@ -36,7 +46,8 @@ def monitor_printer():
             printer_data["temperature"]["nozzle"]["actual"],
             printer_data["temperature"]["bed"]["actual"],
             printer_data["status"],
-            printer_data["progress"] if printer_data["progress"] != "N/A" else None
+            printer_data["progress"] if printer_data["progress"] != "N/A" else None,
+            event
         )
 
         time.sleep(5)  
@@ -76,7 +87,8 @@ def get_history(limit: int = 50, status: str = None):
             "nozzle": row[2],
             "bed": row[3],
             "status": row[4],
-            "progress": row[5]
+            "progress": row[5],
+            "event": row[6]
         }
         for row in rows
     ]
@@ -107,3 +119,14 @@ def get_analytics():
         "printing_entries": printing_entries
     }
 
+@app.get("/start")
+def start_printing():
+    return {"status": send_printer_command("start")}
+
+@app.get("/cancel")
+def cancel_printing():
+    return {"status": send_printer_command("cancel")}
+
+@app.get("/pause")
+def pause_printing():
+    return {"status": send_printer_command("pause")}

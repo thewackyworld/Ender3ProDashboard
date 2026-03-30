@@ -12,6 +12,7 @@ def init_db():
         bed_temp REAL,
         status TEXT,
         progress REAL
+        event TEXT
     )
     """)
 
@@ -24,14 +25,14 @@ def init_db():
     conn.commit()
     conn.close()
 
-def insert_data(timestamp, nozzle, bed, status, progress):
+def insert_data(timestamp, nozzle, bed, status, progress, event=None):
     conn = sqlite3.connect("printer_data.db")
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT INTO printer_data (timestamp, nozzle_temp, bed_temp, status, progress)
-    VALUES (?, ?, ?, ?, ?)
-    """, (timestamp, nozzle, bed, status, progress))
+    INSERT INTO printer_data (timestamp, nozzle_temp, bed_temp, status, progress, event)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (timestamp, nozzle, bed, status, progress, event))
 
     conn.commit()
     conn.close()

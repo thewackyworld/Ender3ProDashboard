@@ -66,3 +66,20 @@ def get_printer_data():
     else:
         print("Failed to retrieve data:", response.status_code)
         return response.status_code
+
+def send_printer_command(command):
+    api_token = get_api_token()
+    api_url = 'http://localhost:5000/api/job'
+    headers = {
+        "X-Api-Key": api_token,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "command": command
+    }
+
+    response = requests.post(api_url, json=payload, headers=headers)
+
+    return response.status_code
+ 

@@ -3,6 +3,7 @@
 <head>
     <title>3D Printer Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="index.css">    
 </head>
 <body style="font-family: Arial; text-align: center;">
 
@@ -11,6 +12,11 @@
 
 
 <div style="display: flex; justify-content: center; gap: 20px;">
+
+<div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
+    <h3>Event</h3>
+    <p id="event">No new Event</p>
+</div>
 
 <div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
     <h3>Status</h3>
@@ -34,6 +40,12 @@
 
 </div>
 
+<h2>Controls</h2>
+
+<button onclick="sendCommand('start')">Start</button>
+<button onclick="sendCommand('pause')">Pause</button>
+<button onclick="sendCommand('cancel')">Cancel</button>
+
 <h2>Analytics</h2>
 <p id="avgNozzle"></p>
 <p id="avgBed"></p>
@@ -53,12 +65,22 @@
 setInterval(fetchAnalytics, 5000);
 fetchAnalytics();
 </script>
+<script>
+    async function sendCommand(command) {
+    const res = await fetch(`http://127.0.0.1:8000/${command}`, {
+        method: "POST"
+    });
 
+    const data = await res.json();
+    alert("Command sent: " + command);
+}
+</script>
 <br><br>
 
 <canvas id="tempChart" width="600" height="300"></canvas>
 
 <script>
+let lastEvent = null;
 async function fetchData() {
     const res = await fetch("http://127.0.0.1:8000/printer-status");
     const data = await res.json();
@@ -67,13 +89,23 @@ async function fetchData() {
     document.getElementById("progress").innerText = "Progress: " + data.progress + "%";
     document.getElementById("nozzle").innerText = "Nozzle: " + data.temperature.nozzle.actual;
     document.getElementById("bed").innerText = "Bed: " + data.temperature.bed.actual;
+    if (data.event && data.event !== lastEvent) {
+        lastEvent = data.event;
+        document.getElementById("event").innerText = "Event: " + data.event;
+        showPopup(data.event);
+    }
 }
-async function fetchAnalytics() {
-    const res = await fetch("http://127.0.0.1:8000/analytics");
-    const data = await res.json();
 
-    console.log(data);
-}
+function showPopup(message) {
+        const popup = document.getElementById("popup");
+        popup.innerText = message;
+        popup.style.display = "block";
+
+        setTimeout(() => {
+            popup.style.display = "none";
+        }, 3000); // disappears after 3s
+    }
+
 // update every 2 seconds
 setInterval(fetchData, 2000);
 fetchData();
@@ -121,6 +153,18 @@ fetchData();
     setInterval(fetchHistory, 3000);
     fetchHistory();
 </script>
-
+<div id="popup" style="
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    display: none;
+    z-index: 1000;
+">
 </body>
+
+</div>
 </html>
