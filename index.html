@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Printer Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="font-family: Arial; text-align: center;">
+
+<h1>🖨 3D Printer Dashboard</h1>
+
+
+
+<div style="display: flex; justify-content: center; gap: 20px;">
+
+<div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
+    <h3>Status</h3>
+    <p id="status">Loading...</p>
+</div>
+
+<div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
+    <h3>Progress</h3>
+    <p id="progress"></p>
+</div>
+
+<div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
+    <h3>Nozzle Temp</h3>
+    <p id="nozzle"></p>
+</div>
+
+<div style="border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
+    <h3>Bed Temp</h3>
+    <p id="bed"></p>
+</div>
+
+</div>
+
+<h2>Analytics</h2>
+<p id="avgNozzle"></p>
+<p id="avgBed"></p>
+
+<script>
+    async function fetchAnalytics() {
+    const res = await fetch("http://127.0.0.1:8000/analytics");
+    const data = await res.json();
+
+    document.getElementById("avgNozzle").innerText = 
+        "Avg Nozzle Temp: " + data.avg_nozzle_temp;
+
+    document.getElementById("avgBed").innerText = 
+        "Avg Bed Temp: " + data.avg_bed_temp;
+}
+
+setInterval(fetchAnalytics, 5000);
+fetchAnalytics();
+</script>
+
+<br><br>
+
+<canvas id="tempChart" width="600" height="300"></canvas>
+
+<script>
+async function fetchData() {
+    const res = await fetch("http://127.0.0.1:8000/printer-status");
+    const data = await res.json();
+
+    document.getElementById("status").innerText = "Status: " + data.status;
+    document.getElementById("progress").innerText = "Progress: " + data.progress + "%";
+    document.getElementById("nozzle").innerText = "Nozzle: " + data.temperature.nozzle.actual;
+    document.getElementById("bed").innerText = "Bed: " + data.temperature.bed.actual;
+}
+async function fetchAnalytics() {
+    const res = await fetch("http://127.0.0.1:8000/analytics");
+    const data = await res.json();
+
+    console.log(data);
+}
+// update every 2 seconds
+setInterval(fetchData, 2000);
+fetchData();
+</script>
+
+<script>
+    let chart;
+
+    async function fetchHistory() {
+        const res = await fetch("http://127.0.0.1:8000/history?limit=20");
+        const data = await res.json();
+
+        const labels = data.map(d => d.timestamp).reverse();
+        const nozzleTemps = data.map(d => d.nozzle).reverse();
+
+        if (!chart) {
+            const ctx = document.getElementById("tempChart").getContext("2d");
+            chart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                    {
+                        label: "Nozzle Temp",
+                        data: nozzleTemps,
+                        borderWidth: 2
+                    },
+                    {
+                        label: "Bed Temp",
+                        data: data.map(d => d.bed).reverse(),
+                        borderWidth: 2
+                    }
+                ]
+                }
+            });
+        } else {
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = nozzleTemps;
+            chart.data.datasets[1].data = data.map(d => d.bed).reverse();
+            chart.update();
+        }
+    }
+
+    // update every 3 seconds
+    setInterval(fetchHistory, 3000);
+    fetchHistory();
+</script>
+
+</body>
+</html>

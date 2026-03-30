@@ -6,10 +6,21 @@ from PrinterAPIrequest import get_printer_data
 import threading
 import time
 import sqlite3
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 latest_data = {}
 app = FastAPI()
 init_db()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all for now
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def monitor_printer():
     while True:
